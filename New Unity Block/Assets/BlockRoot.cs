@@ -77,6 +77,34 @@ public class BlockRoot : MonoBehaviour {
 				this.grabbed_block=null;
 			}
 		}
+
+		if(this.is_has_falling_block()||this.is_has_sliding_block()){
+
+		}else{
+			int ignite_count =0;
+			foreach(BlockControl block in this.blocks){
+				if(! block.isIdle()){
+					continue;
+				}
+				if(this.checkConnection(block)){
+					ignite_count++;
+				}
+			}
+
+			if(ignite_count >0){
+
+				int block_count =0;
+
+				foreach(BlockControl block in this.blocks){
+					if(block.isVanishing()){
+						block.rewindVanishTimer();
+					}
+				}
+			}
+		}
+
+
+
 	}
 
 	public BlockControl getNextBlock(BlockControl block,Block.DIR4 dir){
@@ -235,6 +263,169 @@ public class BlockRoot : MonoBehaviour {
 
 		       return (position);
 	 }
+
+	public bool checkConnection(BlockControl start){
+		bool ret = false;
+		int normal_block_num =0;
+
+		if(! start.isVanishing()){
+			normal_block_num=1;
+		}
+
+		int rx=start.i_pos.x;
+		int lx=start.i_pos.x;
+
+		for(int x= lx-1; x>0; x--){
+			BlockControl next_block=this.blocks[x,start.i_pos.y];
+			if(next_block.color!=start.color){
+				break;
+			}
+			if(next_block.step==Block.STEP.FALL||
+			   next_block.next_step==Block.STEP.FALL){
+				break;
+			}
+			if(next_block.step==Block.STEP.LONG_SLIDE||
+			   next_block.next_step==Block.STEP.SLIDE){
+				break;
+			}
+			if(! next_block.isVanishing()){
+				normal_block_num++;
+			}
+			lx=x;
+		}
+
+		for(int x=rx+1; x<Block.BLOCK_NUM_X; x++){
+			BlockControl next_block=this.blocks[x,start.i_pos.y];
+			if(next_block.color !=start.color){
+				break;
+			}
+			if(next_block.step == Block.STEP.FALL||
+			   next_block.next_step==Block.STEP.FALL){
+				break;
+			}
+			if(next_block.step==Block.STEP.SLIDE||
+			   next_block.next_step==Block.STEP.SLIDE){
+				break;
+			}
+			if(! next_block.isVanishing()){
+				normal_block_num++;
+			}
+			rx = x;
+		}
+
+		do{
+
+			if(rx-lx+1<3){
+				break;
+			}
+
+			if(normal_block_num==0){
+				break;
+			}
+
+			for(int x = lx; x<rx+1; x++){
+				this.blocks[x,start.i_pos.y].toVanishing();
+				ret=true;
+			}
+		}while(false);
+
+		normal_block_num=0;
+
+		if(! start.isVanishing()){
+			normal_block_num =1;
+		}
+		int uy=start.i_pos.y;
+		int dy=start.i_pos.y;
+
+		for(int y = dy -1; y>0; y--){
+			BlockControl next_block=this.blocks[start.i_pos.x,y];
+			if(next_block.color!=start.color){
+				break;
+			}
+			if(next_block.step==Block.STEP.FALL||
+			   next_block.next_step==Block.STEP.FALL){
+				break;
+			}
+			if(next_block.step==Block.STEP.SLIDE||
+			   next_block.next_step==Block.STEP.SLIDE){
+				break;
+			}
+			if(! next_block.isVanishing()){
+				normal_block_num++;
+			}
+			dy=y;
+		}
+
+		for(int y=uy+1;y<Block.BLOCK_NUM_Y;y++){
+			BlockControl next_block = this.blocks[start.i_pos.x,y];
+			if(next_block.color!=start.color){
+				break;
+			}
+			if(next_block.step==Block.STEP.FALL||
+			   next_block.next_step==Block.STEP.FALL){
+				break;
+			}
+			if(next_block.step==Block.STEP.SLIDE||
+			   next_block.next_step==Block.STEP.SLIDE){
+				break;
+			}
+			if(! next_block.isVanishing()){
+				normal_block_num++;
+			}
+			uy=y;
+		}
+
+		do{
+			if(uy -dy +1<3){
+				break;
+			}
+			if(normal_block_num==0){
+				break;
+			}
+			for(int y=dy;y<uy+1;y++){
+				this.blocks[start.i_pos.x,y].toVanishing();
+				ret=true;
+			}
+		}while(false);
+		return(ret);
+		}
+
+	private bool is_has_vanishing_block(){
+		bool ret = false;
+		foreach(BlockControl block in this.blocks){
+			if(block.vanish_timer>0.0f){
+				ret=true;
+				break;
+			}
+		}
+		return(ret);
+
+	}
+
+	private bool is_has_sliding_block(){
+
+		bool ret=false;
+		foreach(BlockControl block in this.blocks){
+			if(block.step==Block.STEP.SLIDE){
+				ret=true;
+				break;
+			}
+		}
+		return(ret);
+	}
+
+	private bool is_has_falling_block(){
+
+		bool ret = false;
+		foreach(BlockControl block in this.blocks){
+			if(block.step==Block.STEP.FALL){
+				ret=true;
+				break;
+			}
+		}
+		return(ret);
+	}
+
 
 
 

@@ -65,6 +65,8 @@ public class BlockControl : MonoBehaviour {
 	public float vanish_timer= -1.0f;
 	public Block.DIR4 slide_dir =Block.DIR4.NONE;
 	public float step_timer=0.0f;
+	public Material opaque_material;
+	public Material transparent_material;
 
 
 	// Use this for initialization
@@ -83,6 +85,19 @@ public class BlockControl : MonoBehaviour {
 
 		Vector2 mouse_position_xy = 
 			new Vector2 (mouse_position.x, mouse_position.y);
+
+		if(this.vanish_timer>= 0.0f){
+			this.vanish_timer-=Time.deltaTime;
+			if(this.vanish_timer<0.0f){
+				if(this.step != Block.STEP.SLIDE){
+					this.vanish_timer=-1.0f;
+					this.next_step=Block.STEP.VACANT;
+				}else{
+					this.vanish_timer=0.0f;
+				}
+			}
+		}
+	
 
 		this.step_timer += Time.deltaTime;
 		float slide_time=0.2f;
@@ -123,6 +138,7 @@ public class BlockControl : MonoBehaviour {
 					break;
 			    case Block.STEP.VACANT:
 					this.position_offset=Vector3.zero;
+				    this.setVisible(false);
 					break;
 		   }
 			this.step_timer=0.0f;
@@ -146,9 +162,67 @@ public class BlockControl : MonoBehaviour {
 
 		this.transform.position=position;
 
+		this.setColor(this.color);
+
+		if(this.vanish_timer >= 0.0f){
+			Color color0=
+				Color.Lerp(this.renderer.material.color,Color.white,0.5f);
+			Color color1=
+				Color.Lerp(this.renderer.material.color,Color.black,0.5f);
+
+			if(this.vanish_timer<Block.VANISH_TIME/2.0f){
+
+				color0.a = this.vanish_timer/(Block.VANISH_TIME/2.0f);
+				color1.a=color0.a;
+
+				this.renderer.material=this.transparent_material;
+			}
+
+			float rate = 1.0f - this.vanish_timer/Block.VANISH_TIME;
+			this.renderer.material.color=Color.Lerp(color0,color1,rate);
+		}
+
+
+
 	
 	
 	}
+
+	public void toVanishing(){
+
+		this.vanish_timer=Block.VANISH_TIME;
+	}
+
+	public bool isVanishing(){
+
+		bool is_vanishing = (this.vanish_timer>0.0f);
+		return(is_vanishing);
+	}
+
+	public void rewindVanishTimer(){
+		this.vanish_timer = Block.VANISH_TIME;
+	}
+
+	public bool isVisible(){
+		bool is_visible = this.renderer.enabled;
+		return(is_visible);
+
+	}
+
+	public void setVisible(bool is_visible){
+		this.renderer.enabled = is_visible;
+	}
+
+	public bool isIdle(){
+		bool is_idle = false;
+
+		if(this.step==Block.STEP.IDLE&&this.next_step==Block.STEP.NONE){
+			is_idle=true;
+		}
+		return(is_idle);
+	}
+
+
 
 	public Block.DIR4 calcSlideDir(Vector2 mouse_position){
 		Block.DIR4 dir =Block.DIR4.NONE;
