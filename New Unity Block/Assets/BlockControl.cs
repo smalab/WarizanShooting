@@ -84,6 +84,24 @@ public class BlockControl : MonoBehaviour {
 		Vector2 mouse_position_xy = 
 			new Vector2 (mouse_position.x, mouse_position.y);
 
+		this.step_timer += Time.deltaTime;
+		float slide_time=0.2f;
+
+		if(this.next_step==Block.STEP.NONE){
+			switch(this.step){
+			case Block.STEP.SLIDE:
+				if(this.step_timer>=slide_time){
+					if(this.vanish_timer==0.0f){
+						this.next_step=Block.STEP.VACANT;
+					}else{
+						this.next_step=Block.STEP.IDLE;
+					}
+				}
+				break;
+			}
+		}
+
+
 		while(this.next_step != Block.STEP.NONE){
 
 		      this.step =this.next_step;
@@ -91,20 +109,37 @@ public class BlockControl : MonoBehaviour {
 
 		      switch(this.step){
 
-		case Block.STEP.IDLE:
-			this.position_offset=Vector3.zero;
-			this.transform.localScale=Vector3.one*1.0f;
-			break;
+				case Block.STEP.IDLE:
+					this.position_offset=Vector3.zero;
+					this.transform.localScale=Vector3.one*1.0f;
+					break;
 
-		case Block.STEP.GRABBED:
-			this.transform.localScale=Vector3.one*1.2f;
-			break;
-		case Block.STEP.RELEASED:
-			this.position_offset=Vector3.zero;
-			this.transform.localScale=Vector3.one*1.0f;
-			break;
+				case Block.STEP.GRABBED:
+					this.transform.localScale=Vector3.one*1.2f;
+					break;
+				case Block.STEP.RELEASED:
+					this.position_offset=Vector3.zero;
+					this.transform.localScale=Vector3.one*1.0f;
+					break;
+			    case Block.STEP.VACANT:
+					this.position_offset=Vector3.zero;
+					break;
 		   }
+			this.step_timer=0.0f;
 
+		}
+
+		switch(this.step){
+			case Block.STEP.GRABBED:
+				this.slide_dir=this.calcSlideDir(mouse_position_xy);
+				break;
+			case Block.STEP.SLIDE:
+				float rate = this.step_timer/slide_time;
+				rate=Mathf.Min(rate,1.0f);
+				rate=Mathf.Sin (rate*Mathf.PI/2.0f);
+				this.position_offset=Vector3.Lerp(
+					this.position_offset_initial,Vector3.zero,rate);
+				break;
 		}
 
 		Vector3 position= BlockRoot.calcBlockPosition(this.i_pos)+this.position_offset;
