@@ -68,6 +68,12 @@ public class BlockControl : MonoBehaviour {
 	public Material opaque_material;
 	public Material transparent_material;
 
+	private struct StepFall{
+		public float velocity;
+	}
+
+	private StepFall fall;
+
 
 	// Use this for initialization
 	void Start () {
@@ -113,6 +119,18 @@ public class BlockControl : MonoBehaviour {
 					}
 				}
 				break;
+
+			case Block.STEP.IDLE:
+				this.renderer.enabled=true;
+				break;
+
+			case Block.STEP.FALL:
+				if(this.position_offset.y<=0.0f){
+					this.next_step=Block.STEP.IDLE;
+					this.position_offset.y=0.0f;
+				}
+				break;
+
 			}
 		}
 
@@ -140,6 +158,12 @@ public class BlockControl : MonoBehaviour {
 					this.position_offset=Vector3.zero;
 				    this.setVisible(false);
 					break;
+				case Block.STEP.RESPAWN:
+					int color_index=Random.Range(0,(int)Block.COLOR.NORMAL_COLOR_NUM);
+					this.setColor((Block.COLOR)color_index);
+					this.next_step=Block.STEP.IDLE;
+					break;
+
 		   }
 			this.step_timer=0.0f;
 
@@ -155,6 +179,13 @@ public class BlockControl : MonoBehaviour {
 				rate=Mathf.Sin (rate*Mathf.PI/2.0f);
 				this.position_offset=Vector3.Lerp(
 					this.position_offset_initial,Vector3.zero,rate);
+				break;
+			case Block.STEP.FALL:
+				this.fall.velocity+=Physics.gravity.y*Time.deltaTime*0.3f;
+				this.position_offset.y+=this.fall.velocity*Time.deltaTime;
+				if(this.position_offset.y<0.0f){
+					this.position_offset.y=0.0f;
+				}
 				break;
 		}
 
@@ -320,6 +351,39 @@ public class BlockControl : MonoBehaviour {
 	}
 	return(is_grabbable);
     }
+
+	public void beginFall(BlockControl start){
+		this.next_step=Block.STEP.FALL;
+		this.position_offset.y=
+			(float)(start.i_pos.y - this.i_pos.y)*Block.COLLISION_SIZE;
+	}
+
+	public void beginRespawn(int start_ipos_y){
+
+		this.position_offset.y=
+			(float)(start_ipos_y-this.i_pos.y)*
+				Block.COLLISION_SIZE;
+		this.next_step=Block.STEP.FALL;
+		int color_index =
+			Random.Range((int)Block.COLOR.FIRST,
+			             (int)Block.COLOR.LAST+1);
+		this.setColor((Block.COLOR)color_index);
+	}
+
+	public bool isVacant(){
+
+		bool is_vacant = false;
+		if(this.step==Block.STEP.VACANT&&this.next_step==Block.STEP.NONE){
+			is_vacant=true;
+		}
+		return(is_vacant);
+	}
+
+	public bool isSliding(){
+
+		bool is_sliding=(this.position_offset.x != 0.0f);
+		return(is_sliding);
+	}
 
 	public bool isContainedPosition(Vector2 position){
 

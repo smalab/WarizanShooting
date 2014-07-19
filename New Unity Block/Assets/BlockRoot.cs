@@ -26,23 +26,23 @@ public class BlockRoot : MonoBehaviour {
 			new Vector2(mouse_position.x,mouse_position.y);
 
 		if(this.grabbed_block==null){
-			//if(!this.is_has_falling_block()){
-			if(Input.GetMouseButtonDown(0)){
-				foreach(BlockControl block in this.blocks){
-					if(! block.isGrabbable()){
-						continue;
-					}
+				if(!this.is_has_falling_block()){
+					if(Input.GetMouseButtonDown(0)){
+						foreach(BlockControl block in this.blocks){
+							if(! block.isGrabbable()){
+								continue;
+							}
 
-					if(!block.isContainedPosition(mouse_position_xy)){
-						continue;
-					}
+							if(!block.isContainedPosition(mouse_position_xy)){
+								continue;
+							}
 
-					this.grabbed_block=block;
-					this.grabbed_block.beginGrab();
-					break;
+							this.grabbed_block=block;
+							this.grabbed_block.beginGrab();
+							break;
+					}
 				}
 			}
-			//}
 		}else{
 
 			do{
@@ -102,6 +102,58 @@ public class BlockRoot : MonoBehaviour {
 				}
 			}
 		}
+
+		bool is_vanishing = this.is_has_vanishing_block();
+
+		do{
+
+			if(is_vanishing){
+				break;
+			}
+
+			if(this.is_has_sliding_block()){
+				break;
+			}
+
+			for(int x=0; x<Block.BLOCK_NUM_X;x++){
+
+				if(this.is_has_sliding_block_in_colum(x)){
+					continue;
+				}
+
+				for(int y=0;y<Block.BLOCK_NUM_Y-1;y++){
+
+					if(! this.blocks[x,y].isVacant()){
+						continue;
+					}
+
+					for(int y1=y+1; y1<Block.BLOCK_NUM_Y;y1++){
+
+						if(this.blocks[x,y1].isVacant()){
+							continue;
+						}
+
+						this.fallBlock(this.blocks[x,y],Block.DIR4.UP,
+						               this.blocks[x,y1]);
+						               break;
+					}
+				}
+			}
+
+			for(int x=0; x<Block.BLOCK_NUM_X;x++){
+				int fall_start_y=Block.BLOCK_NUM_Y;
+				for(int y=0;y<Block.BLOCK_NUM_Y;y++){
+
+					if(! this.blocks[x,y].isVacant()){
+						continue;
+					}
+					this.blocks[x,y].beginRespawn(fall_start_y);
+					fall_start_y++;
+				}
+			}
+		}while(false);
+
+
 
 
 
@@ -419,6 +471,44 @@ public class BlockRoot : MonoBehaviour {
 		bool ret = false;
 		foreach(BlockControl block in this.blocks){
 			if(block.step==Block.STEP.FALL){
+				ret=true;
+				break;
+			}
+		}
+		return(ret);
+	}
+
+	public void fallBlock(BlockControl block0,Block.DIR4 dir,BlockControl block1){
+
+		Block.COLOR color0 = block0.color;
+		Block.COLOR color1 = block1.color;
+		Vector3 scale0 = block0.transform.localScale;
+		Vector3 scale1 = block1.transform.localScale;
+		float vanish_timer0 = block0.vanish_timer;
+		float vanish_timer1 = block1.vanish_timer;
+		bool visible0 = block0.isVisible();
+		bool visible1 = block1.isVisible();
+		Block.STEP step0 = block0.step;
+		Block.STEP step1 = block1.step;
+
+		block0.setColor(color1);
+		block1.setColor(color0);
+		block0.transform.localScale = scale1;
+		block1.transform.localScale = scale0;
+		block0.vanish_timer=vanish_timer1;
+		block1.vanish_timer=vanish_timer0;
+		block0.setVisible(visible1);
+		block1.setVisible(visible0);
+		block0.step = step1;
+		block1.step = step0;
+		block0.beginFall(block1);
+	}
+
+	private bool is_has_sliding_block_in_colum(int x){
+
+		bool ret = false;
+		for(int y=0; y<Block.BLOCK_NUM_Y;y++){
+			if(this.blocks[x,y].isSliding()){
 				ret=true;
 				break;
 			}
